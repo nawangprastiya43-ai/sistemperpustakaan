@@ -1,22 +1,24 @@
 <?php
-
-$buku = [
-    ["judul" => "Laskar Pelangi", "penulis" => "Andrea Hirata", "tahun" => 2005, "status" => true],
-    ["judul" => "Bumi", "penulis" => "Tere Liye", "tahun" => 2014, "status" => false],
-    ["judul" => "Negeri 5 Menara", "penulis" => "Ahmad Fuadi", "tahun" => 2009, "status" => true],
-    ["judul" => "Dilan 1990", "penulis" => "Pidi Baiq", "tahun" => 2014, "status" => false],
-    ["judul" => "Atomic Habits", "penulis" => "James Clear", "tahun" => 2018, "status" => true],
-    ["judul" => "qqqqq", "penulis" => "nawang", "tahun"=> 2027, "status" => false],
-];
+require 'koneksi.php';
 
 $keyword = "";
 
+// Ambil keyword
 if (isset($_GET['keyword'])) {
-    $keyword = strtolower($_GET['keyword']);
+    $keyword = mysqli_real_escape_string($koneksi, $_GET['keyword']);
 }
 
-?>
+// Query dengan pencarian
+if ($keyword != "") {
+    $query = "SELECT * FROM buku 
+              WHERE judul LIKE '%$keyword%' 
+              OR penulis LIKE '%$keyword%'";
+} else {
+    $query = "SELECT * FROM buku";
+}
 
+$result = mysqli_query($koneksi, $query);
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -26,10 +28,15 @@ if (isset($_GET['keyword'])) {
 
 <h2>Data Buku</h2>
 
-<form method="GET">
-    <input type="text" name="keyword" placeholder="Cari Buku...">
+<form method="GET" action="">
+    <input 
+        type="text" 
+        name="keyword" 
+        placeholder="Ketik kata kunci..."
+        value="<?= isset($_GET['keyword']) ? htmlspecialchars($_GET['keyword']) : '' ?>"
+    >
     <button type="submit">Cari</button>
-    <a href="index.php" style="margin-left:10px;">Reset Pencarian</a>
+    <a href="index.php">Reset</a>
 </form>
 
 <br>
@@ -42,49 +49,38 @@ if (isset($_GET['keyword'])) {
     <th>Status</th>
 </tr>
 
-<?php $dataDitemukan = false; ?>
+<?php if (mysqli_num_rows($result) > 0) : ?>
 
-<?php foreach ($buku as $b) : ?>
+    <?php while ($b = mysqli_fetch_assoc($result)) : ?>
+    <tr>
+        <td><?= htmlspecialchars($b['judul_buku']); ?></td>
+        <td><?= htmlspecialchars($b['penulis']); ?></td>
+        <td><?= htmlspecialchars($b['tahun_terbit']); ?></td>
+        <td>
 
-<?php
-if ($keyword == "" ||
-    str_contains(strtolower($b['judul']), $keyword) ||
-    str_contains(strtolower($b['penulis']), $keyword)
-) :
+        <?php
+        if ($b["tahun_terbit"] > 2026 ) {
+            echo "<span style='color:orange; font-weight:bold;'>Coming Soon</span>";
+        }
+        elseif ($b["status_pinjam"] == 1) {
+            echo "<span style='color:red;'>Sedang Dipinjam</span>";
+        }
+        else {
+            echo "<span style='color:green;'>Tersedia</span>";
+        }
+        ?>
 
-    $dataDitemukan = true;
-?>
+        </td>
+    </tr>
+    <?php endwhile; ?>
 
-<tr>
-    <td><?= $b['judul']; ?></td>
-    <td><?= $b['penulis']; ?></td>
-    <td><?= $b['tahun']; ?></td>
-    <td>
-
-       <?php
-    if ($b["tahun"] > 2026) {
-        echo "<span style='color:orange; font-weight:bold;'>Coming Soon</span>";
-    }
-    else if ($b["status"] == true) {
-        echo "<span style='color:red;'>Sedang Dipinjam</span>";
-    }
-    else {
-        echo "<span style='color:green;'>Tersedia</span>";
-    }
-    ?>
-    </td>
-</tr>
-
-    <?php endif; ?>
-
-<?php endforeach; ?>
-    <?php if (!$dataDitemukan) : ?>
+<?php else : ?>
     <tr>
         <td colspan="4" style="text-align:center; color:red;">
             Data tidak ditemukan
         </td>
     </tr>
-    <?php endif; ?>
+<?php endif; ?>
 
 </table>
 
